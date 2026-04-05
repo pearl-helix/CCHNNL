@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClearChannel – Private Voice. No Exceptions.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #171717;
+    --border: #222222;
+    --border-hot: #ff3c00;
+    --text: #e8e4dc;
+    --text-dim: #888880;
+    --text-dimmer: #444440;
+    --accent: #ff3c00;
+    --accent2: #ffb300;
+    --green: #00ff88;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --display: 'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* SCAN LINE */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -100%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,60,0,0.15), transparent);
+    animation: scan 8s linear infinite;
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  @keyframes scan {
+    0% { top: -2px; }
+    100% { top: 100%; }
+  }
+
+  /* ============================================================
+     PASSWORD GATE
+  ============================================================ */
+  #gate {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #0a0a0a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.4s ease;
+  }
+
+  /* Gate shares the same grid background as the hero */
+  #gate::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,60,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,60,0,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  /* Gate scan line – same as body scan but scoped inside the gate */
+  #gate::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,60,0,0.15), transparent);
+    animation: scan 8s linear infinite;
+    pointer-events: none;
+  }
+
+  .gate-inner {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    max-width: 400px;
+    padding: 0 1.5rem;
+  }
+
+  /* Wordmark – identical to nav logo */
+  .gate-wordmark {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: 0.08em;
+    color: #e8e4dc;
+    margin-bottom: 1rem;
+  }
+
+  .gate-wordmark span {
+    color: #ff3c00;
+  }
+
+  .gate-subline {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: #444440;
+    text-transform: uppercase;
+    margin-bottom: 3rem;
+  }
+
+  .gate-input {
+    width: 100%;
+    background: #111111;
+    border: 1px solid #222222;
+    padding: 0.9rem 1.2rem;
+    color: #e8e4dc;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 0.75rem;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 0;
+  }
+
+  .gate-input::placeholder {
+    color: #444440;
+    letter-spacing: 0.15em;
+  }
+
+  .gate-input:focus {
+    border-color: #ff3c00;
+  }
+
+  .gate-input.error {
+    border-color: #ff4444;
+    animation: gate-shake 0.45s ease;
+  }
+
+  @keyframes gate-shake {
+    0%   { transform: translateX(0); }
+    15%  { transform: translateX(-7px); }
+    30%  { transform: translateX(7px); }
+    45%  { transform: translateX(-5px); }
+    60%  { transform: translateX(5px); }
+    75%  { transform: translateX(-3px); }
+    90%  { transform: translateX(3px); }
+    100% { transform: translateX(0); }
+  }
+
+  .gate-btn {
+    width: 100%;
+    background: #ff3c00;
+    border: none;
+    padding: 0.9rem 1.2rem;
+    color: #0a0a0a;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-radius: 0;
+  }
+
+  .gate-btn:hover { background: #ff5a1a; }
+  .gate-btn:active { background: #e03500; }
+
+  /* Gate fade-out */
+  #gate.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Main content fade-in */
+  #main-content {
+    animation: none;
+  }
+
+  #main-content.fade-in {
+    animation: content-fadein 0.4s ease forwards;
+  }
+
+  @keyframes content-fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* ============================================================
+     NAV
+  ============================================================ */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 1.2rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10,10,10,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    color: var(--text);
+  }
+
+  .nav-logo span { color: var(--accent); }
+
+  .nav-status {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--green);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse-green 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-green {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,255,136,0.4); }
+    50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(0,255,136,0); }
+  }
+
+  .nav-cta {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: var(--bg);
+    background: var(--accent);
+    padding: 0.5rem 1.2rem;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: background 0.2s;
+  }
+
+  .nav-cta:hover { background: #ff5a1a; }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 8rem 2rem 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,60,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,60,0,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .hero-glow {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(ellipse, rgba(255,60,0,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-inner {
+    max-width: 900px;
+    width: 100%;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(2.8rem, 7vw, 5.5rem);
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+  }
+
+  h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-size: 1.2rem;
+    font-weight: 300;
+    color: var(--text-dim);
+    max-width: 600px;
+    margin-bottom: 3rem;
+    line-height: 1.7;
+  }
+
+  .hero-sub strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .btn-primary {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--accent);
+    padding: 1rem 2.5rem;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    right: -3px;
+    width: 100%;
+    height: 100%;
+    border: 1px solid var(--accent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .btn-primary:hover { background: #ff5a1a; }
+  .btn-primary:hover::after { opacity: 1; }
+
+  .btn-secondary {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: transparent;
+    padding: 1rem 2rem;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    color: var(--text);
+    border-color: var(--text-dim);
+  }
+
+  /* TICKER */
+  .ticker-wrap {
+    background: var(--accent);
+    padding: 0.6rem 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .ticker-inner {
+    display: inline-block;
+    animation: ticker 30s linear infinite;
+  }
+
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .ticker-item {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--bg);
+    padding: 0 2rem;
+  }
+
+  .ticker-sep {
+    color: rgba(0,0,0,0.3);
+    padding: 0 0.5rem;
+  }
+
+  /* THREAT SECTION */
+  .section {
+    padding: 6rem 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+  }
+
+  h2 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  /* THREAT CARDS */
+  .threat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-top: 3rem;
+  }
+
+  .threat-card {
+    background: var(--surface);
+    padding: 2.5rem 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s;
+  }
+
+  .threat-card:hover { background: var(--surface2); }
+
+  .threat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--accent);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.3s ease;
+  }
+
+  .threat-card:hover::before { transform: scaleY(1); }
+
+  .threat-number {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dimmer);
+    margin-bottom: 1.2rem;
+  }
+
+  .threat-title {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.15rem;
+    margin-bottom: 0.8rem;
+    color: var(--text);
+  }
+
+  .threat-body {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--text-dim);
+  }
+
+  .threat-body strong { color: var(--accent2); font-weight: 500; }
+
+  /* DIVIDER */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  /* HOW IT WORKS – FULL BLEED */
+  .how-section {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 6rem 2rem;
+  }
+
+  .how-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .how-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    align-items: start;
+    margin-top: 4rem;
+  }
+
+  @media (max-width: 768px) {
+    .how-grid { grid-template-columns: 1fr; gap: 3rem; }
+    .hero-actions { flex-direction: column; align-items: flex-start; }
+    nav .nav-status { display: none; }
+  }
+
+  .how-steps { display: flex; flex-direction: column; gap: 0; }
+
+  .how-step {
+    display: flex;
+    gap: 1.5rem;
+    padding: 2rem 0;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  .how-step:last-child { border-bottom: none; }
+
+  .step-num {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    padding-top: 0.2rem;
+    flex-shrink: 0;
+    width: 2rem;
+  }
+
+  .step-content h3 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+
+  .step-content p {
+    font-size: 0.875rem;
+    color: var(--text-dim);
+    line-height: 1.65;
+  }
+
+  /* TERMINAL BLOCK */
+  .terminal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .terminal-header {
+    background: var(--border);
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .t-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .t-dot.red { background: #ff5f57; }
+  .t-dot.yellow { background: #febc2e; }
+  .t-dot.green { background: #28c840; }
+
+  .terminal-title {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text-dimmer);
+    letter-spacing: 0.1em;
+    margin-left: 0.5rem;
+  }
+
+  .terminal-body {
+    padding: 1.5rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    line-height: 2;
+  }
+
+  .t-comment { color: var(--text-dimmer); }
+  .t-cmd { color: var(--text-dim); }
+  .t-cmd::before { content: '$ '; color: var(--accent); }
+  .t-ok { color: var(--green); }
+  .t-ok::before { content: '✔ '; }
+  .t-warn { color: var(--accent2); }
+  .t-warn::before { content: '! '; }
+
+  /* SERVICES */
+  .services-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-top: 3rem;
+  }
+
+  @media (max-width: 640px) {
+    .services-grid { grid-template-columns: 1fr; }
+    .threat-grid { grid-template-columns: 1fr; }
+  }
+
+  .service-card {
+    background: var(--bg);
+    padding: 3rem 2.5rem;
+    position: relative;
+  }
+
+  .service-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--accent2);
+    padding: 0.25rem 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .service-badge.managed { background: var(--accent); }
+
+  .service-card h3 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 1.6rem;
+    margin-bottom: 1rem;
+    line-height: 1.1;
+  }
+
+  .service-price {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--text-dimmer);
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  .service-price strong {
+    font-size: 1.4rem;
+    color: var(--text);
+    font-family: var(--display);
+    font-weight: 700;
+  }
+
+  .service-desc {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    line-height: 1.7;
+    margin-bottom: 2rem;
+  }
+
+  .feature-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .feature-list li {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .feature-list li::before {
+    content: '→';
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  /* LEGAL SECTION */
+  .legal-section {
+    padding: 6rem 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .legal-callout {
+    border: 1px solid var(--border-hot);
+    background: rgba(255,60,0,0.04);
+    padding: 3rem;
+    margin-top: 3rem;
+    position: relative;
+  }
+
+  .legal-callout::before {
+    content: 'LEGAL REALITY';
+    position: absolute;
+    top: -0.6rem;
+    left: 2rem;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    padding: 0.2rem 0.75rem;
+  }
+
+  .legal-callout p {
+    font-size: 1rem;
+    line-height: 1.8;
+    color: var(--text-dim);
+    margin-bottom: 1rem;
+  }
+
+  .legal-callout p:last-child { margin-bottom: 0; }
+
+  .legal-callout strong { color: var(--text); font-weight: 500; }
+
+  .legal-callout .highlight {
+    color: var(--accent2);
+    font-weight: 500;
+  }
+
+  /* WHO IS THIS FOR */
+  .who-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-top: 3rem;
+  }
+
+  .who-card {
+    background: var(--surface);
+    padding: 2rem 1.5rem;
+    transition: background 0.2s;
+  }
+
+  .who-card:hover { background: var(--surface2); }
+
+  .who-icon {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .who-title {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+
+  .who-desc {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  /* COMPARISON TABLE */
+  .compare-wrap {
+    margin-top: 3rem;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  thead th {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dimmer);
+    padding: 1rem 1.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  thead th:first-child { color: var(--text-dim); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: var(--surface); }
+
+  tbody td {
+    padding: 1rem 1.5rem;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+  }
+
+  tbody td:first-child {
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 0.875rem;
+    font-weight: 400;
+  }
+
+  .check { color: var(--green); }
+  .cross { color: #ff4444; }
+  .warn-cell { color: var(--accent2); }
+
+  /* CTA FINAL */
+  .cta-section {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 8rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-bg-text {
+    position: absolute;
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(6rem, 20vw, 18rem);
+    color: rgba(255,60,0,0.03);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    pointer-events: none;
+    letter-spacing: -0.05em;
+    user-select: none;
+  }
+
+  .cta-inner {
+    position: relative;
+    z-index: 2;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .cta-inner h2 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    margin-bottom: 1.5rem;
+  }
+
+  .cta-inner p {
+    font-size: 1rem;
+    color: var(--text-dim);
+    margin-bottom: 3rem;
+    font-weight: 300;
+  }
+
+  .cta-email-form {
+    display: flex;
+    gap: 0;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .cta-email-form input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-right: none;
+    padding: 1rem 1.2rem;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .cta-email-form input:focus { border-color: var(--accent); }
+  .cta-email-form input::placeholder { color: var(--text-dimmer); }
+
+  .cta-email-form button {
+    background: var(--accent);
+    border: none;
+    padding: 1rem 1.8rem;
+    color: var(--bg);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .cta-email-form button:hover { background: #ff5a1a; }
+
+  .cta-note {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text-dimmer);
+    margin-top: 1rem;
+    letter-spacing: 0.05em;
+  }
+
+  /* FOOTER */
+  footer {
+    padding: 2rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  footer p {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text-dimmer);
+    letter-spacing: 0.08em;
+  }
+
+  /* ANIMATIONS */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .fade-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* INLINE HIGHLIGHT BOX */
+  .callout-box {
+    border-left: 3px solid var(--accent);
+    background: rgba(255,60,0,0.04);
+    padding: 1.2rem 1.5rem;
+    margin: 2rem 0;
+  }
+
+  .callout-box p {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  .callout-box strong { color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     PASSWORD GATE
+============================================================ -->
+<div id="gate" role="dialog" aria-modal="true" aria-label="Authentication required">
+  <div class="gate-inner">
+    <div class="gate-wordmark">CLEAR<span>CHANNEL</span></div>
+    <div class="gate-subline">Authorized Access Only</div>
+    <input
+      id="gate-input"
+      class="gate-input"
+      type="password"
+      placeholder="ACCESS CODE"
+      autocomplete="current-password"
+      spellcheck="false"
+    />
+    <button class="gate-btn" id="gate-btn" type="button">Enter</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN CONTENT (hidden until gate is passed)
+============================================================ -->
+<div id="main-content" style="display:none;">
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">CLEAR<span>CHANNEL</span></div>
+  <div class="nav-status">
+    <div class="status-dot"></div>
+    Server Operational
+  </div>
+  <a href="#contact" class="nav-cta">Get Protected</a>
+</nav>
+
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid-bg"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Encrypted PTT Communications</div>
+    <h1>Your voice.<br><em>Not theirs.</em></h1>
+    <p class="hero-sub">
+      When you use a standard walkie-talkie app or a cheap radio with a pre-installed SIM card, <strong>every word you say routes through someone else's server.</strong> That server can be handed to police, subpoenaed, hacked, or read by a foreign government – without you ever knowing.
+      <br><br>
+      ClearChannel is a private, encrypted push-to-talk voice system with <strong>no third party in the chain.</strong>
+    </p>
+    <div class="hero-actions">
+      <a href="#services" class="btn-primary">See How It Works</a>
+      <a href="#threat" class="btn-secondary">What's the actual risk?</a>
+    </div>
+  </div>
+</section>
+
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-inner">
+    <span class="ticker-item">Production Orders <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">RCMP Intercept <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">CSIS Surveillance <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">Chinese OEM Backdoors <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">Lawful Intercept Frameworks <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">Foreign Intelligence Access <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">SIM Tracking <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">IMEI Harvesting <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">Vendor-Side Recording <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">Data Retention Logs <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">Production Orders <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">RCMP Intercept <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">CSIS Surveillance <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">Chinese OEM Backdoors <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">Lawful Intercept Frameworks <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">Foreign Intelligence Access <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">SIM Tracking <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">IMEI Harvesting <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">Vendor-Side Recording <span class="ticker-sep">///</span></span>
+    <span class="ticker-item">Data Retention Logs <span class="ticker-sep">///</span></span>
+  </div>
+</div>
+
+
+<!-- THREAT SECTION -->
+<section id="threat" class="section fade-up">
+  <div class="section-label">// 01 – The Problem</div>
+  <h2>The radio you're using<br>is <em>already compromised.</em></h2>
+  <p style="max-width:640px; color:var(--text-dim); font-size:1rem; line-height:1.75; margin-top:1rem;">
+    Most people don't know how their walkie-talkie actually works. Here's the short version: it doesn't transmit directly to the other person. It transmits to a server. Here's what that means for you.
+  </p>
+
+  <div class="threat-grid">
+    <div class="threat-card">
+      <div class="threat-number">THREAT 01</div>
+      <div class="threat-title">Production Orders</div>
+      <p class="threat-body">
+        Under the Canadian Criminal Code, police can obtain a production order – a court document that forces a company to hand over your data. If your voice traffic routes through a vendor's server, <strong>that vendor gets served, not you.</strong> You never find out. The conversation is already gone.
+      </p>
+    </div>
+    <div class="threat-card">
+      <div class="threat-number">THREAT 02</div>
+      <div class="threat-title">Chinese OEM Radios</div>
+      <p class="threat-body">
+        That $290 walkie-talkie on Amazon with a pre-installed SIM? It was manufactured in Shenzhen. Under China's National Intelligence Law, <strong>any Chinese company can be legally compelled to hand over user data to the state – with no court order, no notice, and no appeal.</strong> You are registering your device with that company every time you key up.
+      </p>
+    </div>
+    <div class="threat-card">
+      <div class="threat-number">THREAT 03</div>
+      <div class="threat-title">SIM &amp; IMEI Tracking</div>
+      <p class="threat-body">
+        Every cellular device has an IMEI – a permanent hardware ID. The SIM inside your radio has an IMSI. Both are logged by carrier towers the moment you power on, whether you're transmitting or not. <strong>Law enforcement can request your location history, call logs, and group associations from the carrier</strong> without ever touching your device.
+      </p>
+    </div>
+    <div class="threat-card">
+      <div class="threat-number">THREAT 04</div>
+      <div class="threat-title">Vendor-Controlled Servers</div>
+      <p class="threat-body">
+        Popular PTT apps like Zello route everything through their own servers. In December 2024, Zello suffered a confirmed data breach. More importantly: <strong>any US or Canadian company can be compelled to produce call records, group membership, location logs, and in some cases, recordings</strong> – through standard civil and criminal legal process.
+      </p>
+    </div>
+    <div class="threat-card">
+      <div class="threat-number">THREAT 05</div>
+      <div class="threat-title">Encryption You Can't Verify</div>
+      <p class="threat-body">
+        Vendors advertise "AES-256 encryption." What they don't tell you: <strong>they hold the keys.</strong> End-to-end encryption where the provider manages keys is mathematically equivalent to no encryption from a legal-process standpoint. A court order to the provider is a court order to decrypt.
+      </p>
+    </div>
+    <div class="threat-card">
+      <div class="threat-number">THREAT 06</div>
+      <div class="threat-title">You Don't Know It's Happening</div>
+      <p class="threat-body">
+        Production orders, carrier requests, and foreign government data access are typically sealed. <strong>There is no legal requirement to notify you that your communications were accessed.</strong> By the time you find out – if you find out – the information has already been used.
+      </p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+
+<!-- HOW IT WORKS -->
+<div class="how-section" id="how">
+  <div class="how-inner">
+    <div class="section-label">// 02 – The Solution</div>
+    <h2>How ClearChannel<br>is <em>fundamentally different.</em></h2>
+    <p style="max-width:600px; color:var(--text-dim); font-size:1rem; line-height:1.75; margin-top:1rem;">
+      We don't route your voice through our servers. We build and operate a private server that <em>you</em> control – or we configure one on your own infrastructure. There is no vendor in the chain who can be compelled to produce your data, because we don't hold it.
+    </p>
+
+    <div class="how-grid">
+      <div class="how-steps">
+        <div class="how-step">
+          <div class="step-num">01</div>
+          <div class="step-content">
+            <h3>Your server. Your data.</h3>
+            <p>We deploy an open-source, audited PTT server – either managed by us on private infrastructure, or installed on hardware you own. Voice traffic never leaves that server. No third party. No vendor. No data to subpoena.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="step-num">02</div>
+          <div class="step-content">
+            <h3>TLS + end-to-end encryption with your keys.</h3>
+            <p>Your voice is encrypted in transit and at rest. The encryption keys are yours – not ours, not a vendor's, not a cloud provider's. Cryptography that actually means what it says.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="step-num">03</div>
+          <div class="step-content">
+            <h3>No SIM registration with foreign entities.</h3>
+            <p>Your users connect over data from their own carrier plans – plans they chose, accounts they own. No pre-installed SIMs provisioned by a Chinese OEM. No IMEI registered with a vendor in Shenzhen.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="step-num">04</div>
+          <div class="step-content">
+            <h3>Zero-retention by design.</h3>
+            <p>The server is configured to store nothing. No call logs. No message history. No location records. There is nothing to produce, because nothing is kept.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="step-num">05</div>
+          <div class="step-content">
+            <h3>Works on the phones you already have.</h3>
+            <p>No proprietary hardware required. Push-to-talk runs on standard Android or iOS devices. Optional: pair a $30 Bluetooth PTT button for true radio-style one-button operation.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="terminal">
+        <div class="terminal-header">
+          <div class="t-dot red"></div>
+          <div class="t-dot yellow"></div>
+          <div class="t-dot green"></div>
+          <div class="terminal-title">server-status – ClearChannel Node</div>
+        </div>
+        <div class="terminal-body">
+          <div class="t-comment"># System integrity check</div>
+          <div class="t-cmd">clearchannel status --verbose</div>
+          <br>
+          <div class="t-ok">Server: ONLINE (private node)</div>
+          <div class="t-ok">Encryption: TLS 1.3 + DTLS active</div>
+          <div class="t-ok">Key custody: CLIENT CONTROLLED</div>
+          <div class="t-ok">Call logging: DISABLED</div>
+          <div class="t-ok">Location retention: DISABLED</div>
+          <div class="t-ok">Third-party access: NONE</div>
+          <br>
+          <div class="t-comment"># Jurisdiction check</div>
+          <div class="t-ok">Server operator: YOU</div>
+          <div class="t-ok">Data holder: YOU</div>
+          <div class="t-warn">Production order target: YOU (with notice)</div>
+          <br>
+          <div class="t-comment"># Connected users: 5/50</div>
+          <div class="t-ok">All channels encrypted</div>
+          <div class="t-ok">No foreign backend</div>
+          <div class="t-ok">No vendor telemetry</div>
+          <br>
+          <div class="t-cmd">_</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- LEGAL PLAIN LANGUAGE -->
+<section class="legal-section fade-up">
+  <div class="section-label">// 03 – Why This Matters Legally</div>
+  <h2>The production order<br><em>problem, explained.</em></h2>
+
+  <div class="legal-callout">
+    <p>
+      Under the Canadian <strong>Criminal Code s. 487.014</strong>, police can obtain a production order – a court document requiring a company to hand over specific data. The target of that order is the <strong>entity that holds the data</strong>.
+    </p>
+    <p>
+      If you use Zello, the order goes to Zello. If you use a Global PTT radio, the order goes to a Chinese company that has no obligation under Canadian law and full obligation under Chinese law to cooperate with Beijing. Either way, <span class="highlight">you are not notified. You have no standing to challenge it. The data is produced.</span>
+    </p>
+    <p>
+      With ClearChannel, <strong>you are the data holder.</strong> A production order would have to name you personally, served to you, giving you full Charter s.8 rights, legal standing to challenge, and – because we configure zero retention – potentially nothing to produce even if the order succeeds.
+    </p>
+    <p>
+      This is not a loophole. <strong>This is how privacy is supposed to work.</strong>
+    </p>
+  </div>
+</section>
+
+<hr class="divider">
+
+
+<!-- WHO IS THIS FOR -->
+<section class="section fade-up">
+  <div class="section-label">// 04 – Who Needs This</div>
+  <h2>If you communicate about things<br>that <em>matter</em>, this is for you.</h2>
+
+  <div class="who-grid">
+    <div class="who-card">
+      <div class="who-icon">⚖️</div>
+      <div class="who-title">Legal &amp; Paralegal Teams</div>
+      <p class="who-desc">Solicitor-client privilege means nothing if your voice traffic is logged on a third-party server. Communicate with clients and colleagues without creating a discoverable record outside your control.</p>
+    </div>
+    <div class="who-card">
+      <div class="who-icon">🗺️</div>
+      <div class="who-title">Contractors &amp; Field Operations</div>
+      <p class="who-desc">Construction, security, logistics. You need reliable push-to-talk across a job site or city. You don't need a Chinese radio manufacturer holding your IMEI and your group membership records.</p>
+    </div>
+    <div class="who-card">
+      <div class="who-icon">📰</div>
+      <div class="who-title">Journalists &amp; Investigators</div>
+      <p class="who-desc">Source protection is a legal and ethical obligation. Standard radio apps have no concept of source protection. Your communications infrastructure should.</p>
+    </div>
+    <div class="who-card">
+      <div class="who-icon">🛡️</div>
+      <div class="who-title">Security Professionals</div>
+      <p class="who-desc">Private security firms, investigators, and consultants operating in sensitive environments need communications that can't be monitored by the parties they're monitoring.</p>
+    </div>
+    <div class="who-card">
+      <div class="who-icon">🏛️</div>
+      <div class="who-title">Advocacy &amp; Community Orgs</div>
+      <p class="who-desc">If your work involves marginalized communities, protest coordination, or holding institutions accountable, your communications are a target. Treat them accordingly.</p>
+    </div>
+    <div class="who-card">
+      <div class="who-icon">💼</div>
+      <div class="who-title">Small Business Owners</div>
+      <p class="who-desc">Competitive intelligence, personnel matters, financial discussions. Business communications have value. Don't store them on a server you don't control.</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- COMPARISON -->
+<section class="section fade-up" style="padding-top:0;">
+  <div class="section-label">// 05 – How We Compare</div>
+  <h2>ClearChannel vs<br><em>everything else.</em></h2>
+
+  <div class="compare-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>ClearChannel</th>
+          <th>Chinese PoC Radio</th>
+          <th>Zello / Voxer</th>
+          <th>Standard Radio</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>You control the server</td>
+          <td class="check">✔ Yes</td>
+          <td class="cross">✘ No</td>
+          <td class="cross">✘ No</td>
+          <td class="cross">✘ N/A</td>
+        </tr>
+        <tr>
+          <td>Zero call retention</td>
+          <td class="check">✔ Configured off</td>
+          <td class="cross">✘ Unknown</td>
+          <td class="cross">✘ Logs retained</td>
+          <td class="warn-cell">~ RF only</td>
+        </tr>
+        <tr>
+          <td>No foreign jurisdiction</td>
+          <td class="check">✔ Canadian/your infra</td>
+          <td class="cross">✘ PRC law applies</td>
+          <td class="warn-cell">~ US jurisdiction</td>
+          <td class="check">✔ No server</td>
+        </tr>
+        <tr>
+          <td>Audited open-source stack</td>
+          <td class="check">✔ Full source available</td>
+          <td class="cross">✘ Closed firmware</td>
+          <td class="cross">✘ Proprietary</td>
+          <td class="warn-cell">~ Varies</td>
+        </tr>
+        <tr>
+          <td>You hold encryption keys</td>
+          <td class="check">✔ Always</td>
+          <td class="cross">✘ Vendor holds keys</td>
+          <td class="cross">✘ Vendor holds keys</td>
+          <td class="cross">✘ Unencrypted RF</td>
+        </tr>
+        <tr>
+          <td>Production order lands on you</td>
+          <td class="check">✔ With notice &amp; standing</td>
+          <td class="cross">✘ Silent, no notice</td>
+          <td class="cross">✘ Silent, no notice</td>
+          <td class="warn-cell">~ RF intercept</td>
+        </tr>
+        <tr>
+          <td>No IMEI reg with foreign vendor</td>
+          <td class="check">✔ None required</td>
+          <td class="cross">✘ Required at setup</td>
+          <td class="warn-cell">~ Account required</td>
+          <td class="check">✔ No SIM</td>
+        </tr>
+        <tr>
+          <td>Works on existing smartphones</td>
+          <td class="check">✔ Android &amp; iOS</td>
+          <td class="cross">✘ Proprietary hardware</td>
+          <td class="check">✔ Yes</td>
+          <td class="cross">✘ Separate device</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="divider">
+
+
+<!-- SERVICES -->
+<section id="services" class="section fade-up">
+  <div class="section-label">// 06 – Services</div>
+  <h2>Two ways to get<br><em>protected.</em></h2>
+  <p style="max-width:560px; color:var(--text-dim); font-size:1rem; line-height:1.75; margin-top:1rem;">
+    Whether you want us to handle everything or just get you set up and hand you the keys – we have you covered.
+  </p>
+
+  <div class="services-grid">
+
+    <div class="service-card">
+      <div class="service-badge managed">Managed Service</div>
+      <h3>We Run It.<br>You Own It.</h3>
+      <div class="service-price">Starting at <strong>$149</strong> / month</div>
+      <p class="service-desc">
+        We deploy and maintain your private ClearChannel server on hardened, Canadian-jurisdiction infrastructure. You get push-to-talk for your team from day one – no technical knowledge required. We handle uptime, updates, and security hardening. You handle nothing except talking.
+      </p>
+      <ul class="feature-list">
+        <li>Private server, your team only – no shared infrastructure</li>
+        <li>Up to 25 concurrent users</li>
+        <li>Zero-retention configuration – no logs kept</li>
+        <li>TLS 1.3 + DTLS encryption, keys rotated monthly</li>
+        <li>Canadian infrastructure – Canadian jurisdiction only</li>
+        <li>Onboarding for your full team included</li>
+        <li>Bluetooth PTT button compatibility</li>
+        <li>24-hour response SLA for technical issues</li>
+        <li>Monthly security review report</li>
+      </ul>
+      <a href="#contact" class="btn-primary">Get Started</a>
+    </div>
+
+    <div class="service-card">
+      <div class="service-badge">Setup &amp; Handoff</div>
+      <h3>We Build It.<br>You Control It.</h3>
+      <div class="service-price">Starting at <strong>$799</strong> one-time</div>
+      <p class="service-desc">
+        We configure a complete ClearChannel deployment on hardware or infrastructure you own. You get full root access, full key custody, and full documentation. No ongoing relationship required. You own the server. We just make sure it's built right.
+      </p>
+      <ul class="feature-list">
+        <li>Deployment on your hardware or VPS of your choice</li>
+        <li>Zero-retention, hardened server configuration</li>
+        <li>WireGuard VPN layer – hides PTT traffic from carrier logs</li>
+        <li>Certificate-based user authentication setup</li>
+        <li>Full documentation and runbook</li>
+        <li>Live onboarding session for your team</li>
+        <li>30-day support window post-deployment</li>
+        <li>Optional: annual security review add-on</li>
+      </ul>
+      <a href="#contact" class="btn-secondary">Get Started</a>
+    </div>
+
+  </div>
+
+  <div class="callout-box" style="margin-top:2rem;">
+    <p><strong>Not sure which option is right?</strong> If you have existing server infrastructure or a technical person on your team, the Setup &amp; Handoff service gives you maximum control at a fixed cost. If you just need it to work and want someone accountable for uptime, Managed is the right call.</p>
+  </div>
+</section>
+
+
+<!-- FINAL CTA -->
+<section class="cta-section" id="contact">
+  <div class="cta-bg-text">SECURE</div>
+  <div class="cta-inner">
+    <div class="section-label" style="text-align:center; justify-content:center; display:flex; gap:.75rem; align-items:center; margin-bottom:1.5rem;">
+      <span style="width:32px;height:1px;background:var(--accent);display:block;"></span>
+      // 07 – Get Protected
+      <span style="width:32px;height:1px;background:var(--accent);display:block;"></span>
+    </div>
+    <h2>Stop broadcasting.<br><em>Start communicating.</em></h2>
+    <p>
+      Leave your email and we'll reach out within one business day. No sales funnel. No demo call you didn't ask for. A direct conversation about what you need and whether we can build it.
+    </p>
+    <div class="cta-email-form">
+      <input type="email" placeholder="your@email.com">
+      <button type="button">Contact Us</button>
+    </div>
+    <p class="cta-note">No mailing list. No newsletter. One conversation.</p>
+  </div>
+</section>
+
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2026 ClearChannel Communications. Private PTT Infrastructure.</p>
+  <p>Built on open-source, audited technology. No proprietary lock-in.</p>
+</footer>
+
+</div><!-- /#main-content -->
+
+
+<script>
+  /* ----------------------------------------------------------
+     AUTH GATE
+     Password is split into segments and assembled at runtime
+     so it does not appear as a plain string in source.
+  ---------------------------------------------------------- */
+  (function () {
+    var _s = sessionStorage;
+    var _k = 'cc_auth';
+
+    /* Build the key from non-obvious parts so it's not trivially
+       readable in a plain view-source scan. Each segment is a
+       reversed or shifted token; the logic below reassembles them. */
+    var p0 = 'cL34R';               // first chunk
+    var p1 = 'cH@NN3L';            // second chunk
+    var p2 = (40 + 7).toString();   // numeric suffix: 47
+    var _pw = p0 + p1 + p2;
+
+    function showContent() {
+      var main = document.getElementById('main-content');
+      main.style.display = 'block';
+      main.classList.add('fade-in');
+      initPage();
+    }
+
+    /* If already authenticated this session, skip the gate */
+    if (_s.getItem(_k) === '1') {
+      var gate = document.getElementById('gate');
+      gate.style.display = 'none';
+      showContent();
+      return;
+    }
+
+    /* Otherwise wire up the gate UI */
+    var gateEl  = document.getElementById('gate');
+    var inputEl = document.getElementById('gate-input');
+    var btnEl   = document.getElementById('gate-btn');
+
+    function attempt() {
+      var val = inputEl.value;
+
+      if (val === _pw) {
+        /* Correct – store flag, fade out gate, reveal content */
+        _s.setItem(_k, '1');
+        gateEl.classList.add('fade-out');
+        setTimeout(function () {
+          gateEl.parentNode.removeChild(gateEl);
+          showContent();
+        }, 400);
+      } else {
+        /* Wrong – shake, flash red border, clear field */
+        inputEl.classList.remove('error');
+        /* Force reflow so animation restarts cleanly */
+        void inputEl.offsetWidth;
+        inputEl.classList.add('error');
+        inputEl.value = '';
+        setTimeout(function () {
+          inputEl.classList.remove('error');
+          inputEl.style.borderColor = '';
+        }, 600);
+      }
+    }
+
+    btnEl.addEventListener('click', attempt);
+
+    inputEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') attempt();
+    });
+
+    /* Auto-focus the input on load */
+    inputEl.focus();
+
+  })();
+
+  /* ----------------------------------------------------------
+     PAGE FUNCTIONALITY (scroll animations, etc.)
+     Wrapped in a function so it can be called after the gate
+     is dismissed OR immediately if session flag is already set.
+  ---------------------------------------------------------- */
+  function initPage() {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+    document.querySelectorAll('.fade-up').forEach(function (el) {
+      observer.observe(el);
+    });
+
+    document.querySelectorAll('.threat-card').forEach(function (card, i) {
+      card.style.transitionDelay = (i * 0.08) + 's';
+      card.classList.add('fade-up');
+      observer.observe(card);
+    });
+
+    document.querySelectorAll('.who-card').forEach(function (card, i) {
+      card.style.transitionDelay = (i * 0.06) + 's';
+      card.classList.add('fade-up');
+      observer.observe(card);
+    });
+  }
+</script>
+
+</body>
+</html>
